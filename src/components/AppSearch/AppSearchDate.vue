@@ -1,0 +1,162 @@
+<template>
+  <div class="app-search-date">
+    <div v-if="isArrType">
+      <el-select
+        v-model="dateType"
+        clearable
+        size="small"
+        placeholder="选择日期类型"
+        style="margin-left: 1em;"
+      >
+        <el-option
+          v-for="(type,index) in type"
+          :key="index"
+          :label="type.name"
+          :value="type.type"
+        />
+      </el-select>
+      <el-date-picker
+        v-model="dateValue"
+        style="width: 350px;margin-left:1em;"
+        type="datetimerange"
+        range-separator="-"
+        size="small"
+        start-placeholder="选择日期"
+        end-placeholder="选择日期"
+        value-format="yyyy-MM-dd HH:mm:ss"/>
+    </div>
+    <div v-else>
+      <el-date-picker
+        v-model="timeValue"
+        style="width: 350px;margin-left:1em;"
+        type="datetimerange"
+        range-separator="-"
+        size="small"
+        start-placeholder="选择日期"
+        end-placeholder="选择日期"
+        value-format="yyyy-MM-dd HH:mm:ss"/>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'AppSearchDate',
+
+  props: {
+    value: {
+      type: String,
+      default: '',
+    },
+
+    type: {
+      type: [Array, String],
+      default: () => ([]),
+    },
+
+  },
+
+  data() {
+    return {
+      dateType: '',
+
+      dateValue: [],
+
+      timeValue: [],
+
+      timeType: this.type,
+    };
+  },
+
+  computed: {
+    isArrType() {
+      return this.type instanceof Array;
+    },
+  },
+
+
+  watch: {
+    dateType(value) {
+      this.getUrl(value, this.dateValue);
+    },
+
+    dateValue(value) {
+      this.getUrl(this.dateType, value);
+    },
+
+    timeValue(value) {
+      if (!value) {
+        this.$emit('input', '');
+
+        return;
+      }
+
+      const dates = value.join(`&${this.timeType}=`);
+
+      this.$emit('input', `${this.timeType}:${dates}`);
+    },
+  },
+
+  created() {
+    this.getStatusDate();
+  },
+
+  methods: {
+    getStatusDate() {
+      const { start, listRow, ...search } = this.$route.query;
+
+      const keyList = Object.keys(search);
+
+      if (keyList.length === 0) return;
+
+      if (this.timeType in search) {
+        const data = search[this.timeType];
+
+        this.timeValue = data.split(`&${this.timeType}=`);
+
+        return;
+      }
+
+      const data = keyList.find((item) => {
+        const betweenExist = item.indexOf('between') !== -1;
+
+        const betweenCreated = item.indexOf('created_at') === -1;
+
+        return betweenExist && betweenCreated;
+      });
+
+      if (data !== undefined) {
+        this.dateValue = search[data].split(`&${data}=`);
+
+        this.dateType = data.slice(8, -3);
+      }
+    },
+
+    getUrl(key, value) {
+      if (!key) {
+        this.$emit('input', '');
+        return;
+      }
+
+      if (!value || value.length === 0) {
+        this.$emit('input', '');
+        return;
+      }
+
+      const keys = `${key}`;
+      const dates = value.join(`&${keys}=`);
+
+      this.$emit('input', `${keys}:${dates}`);
+    },
+  },
+};
+</script>
+
+<style lang="postcss">
+.app-search-date{
+  display: inline-block;
+  & div{
+    display: inline-block;
+  }
+}
+</style>
